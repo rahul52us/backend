@@ -1,0 +1,329 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountEnum {
+  ACCEPTED
+  REJECTED
+  DELETED
+}
+
+enum AdminTypeEnum {
+  student
+  teacher
+  staff
+  admin
+}
+
+enum PermissionEnum {
+  CREATE
+  UPDATE
+  DELETE
+  VIEW
+}
+
+enum ReactionType {
+  CLAP
+  LOVE
+  INSIGHTFUL
+  INSPIRING
+}
+
+model User {
+  id              String         @unique @id @default(uuid())
+  firstName       String
+  lastName        String
+  pic             String?
+  username        String
+  phoneNumber     String?
+  password        String
+  adminUserId     String?
+  createdBy       String?
+  status         AccountEnum     @default(ACCEPTED)
+  adminType      AdminTypeEnum   @default(student)
+  profile         Profile?
+  ProfileDetails  ProfileDetails?
+  address         Address?
+  permission      Permission?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime?     @updatedAt
+  blogs           Blog[]
+  comments        Comment[]
+  reactions       Reaction[]
+  highlights      UserHighlight[]  @relation("UserHighlights")
+  followers       User[]           @relation("UserFollows")
+  following       User[]           @relation("UserFollows")
+  @@index([username,phoneNumber,adminUserId])
+}
+
+model Profile {
+    id                  String    @unique @id @default(uuid())
+    user                User      @relation(fields: [userId] , references: [id])
+    userId              String    @unique
+    sibling             Int?
+    standard            Int?
+    StandardInfo        StandardDetails[]
+    gender              Int?      @default(0)
+    fatherName          String?
+    motherName          String?
+    nickName            String?
+    medium              Int       @default(0)
+    dob                 String?
+    emergencyNumber     String?
+    description         String?   @db.Text
+}
+
+model StandardDetails {
+  id              String                @unique @id @default(uuid())
+  profile         Profile               @relation(fields: [profileId] , references: [id])
+  profileId       String
+  class           Int
+  startYear       DateTime              @default(now())
+  endYear         DateTime              @default(now())
+
+  @@index([profileId], name: "ProfileIdIndex")
+  @@index([startYear, endYear], name: "StandardsIndex")
+}
+
+model Address {
+  id              String         @unique @id @default(uuid())
+  userId          String         @unique
+  address1        String?
+  address2        String?
+  country         String?
+  state           String?
+  city            String?
+  zipCode         String?
+  user            User           @relation(fields: [userId], references: [id])
+}
+
+model Permission {
+  id              String         @unique @id @default(uuid())
+  userId          String         @unique
+  changeStatus    Json           @default("[false]")
+  student         Json           @default("[false,false,false,false]")
+  teacher         Json           @default("[false,false,false,false]")
+  permission      Json           @default("[false,false,false,false]")
+  staff           Json           @default("[false,false,false,false]")
+  dashboard       Json           @default("[false]")
+  user            User           @relation(fields: [userId], references: [id])
+}
+
+model ProfileDetails {
+  id                     String        @unique @id @default(uuid())
+  user                   User          @relation(fields: [userId] , references: [id])
+  userId                 String        @unique
+  facebook               String?       @db.Text
+  instagram              String?       @db.Text
+  twitter                String?       @db.Text
+  linkedIn               String?       @db.Text
+  youtube                String?       @db.Text
+  gmail                  String?       @db.Text
+  refrenceVideo          String?       @db.Text
+  picture                String?       @db.Text
+  backgroundPicture      String?       @db.Text
+  details                String?       @db.Text
+  skill                  String?       @db.Text
+  profession             String?
+  expirience             String?
+}
+
+model Web {
+  id             String         @unique @id @default(uuid())
+  userId         String         @unique
+  phoneNumber1   String
+  phoneNumber2   String?
+  address        String
+  email          String?
+  logo           String         @db.Text
+  facebook       String?        @db.Text
+  instagram      String?        @db.Text
+  twitter        String?        @db.Text
+  linkedIn       String?        @db.Text
+  youtube        String?        @db.Text
+  webLink1       String?
+  webName        String         @unique
+  startTime      String?
+  endTime        String?
+}
+
+model GalleryCategory {
+  id                     String        @unique @id @default(uuid())
+  userId                 String
+  name                   String
+  Gallery                Gallery[]
+  createdAt              DateTime      @default(now())
+}
+
+model Gallery {
+  id                     String               @unique @id @default(uuid())
+  userId                 String
+  category               GalleryCategory      @relation(fields: [categoryId] , references: [id], onDelete: Cascade, onUpdate: Cascade)
+  categoryId             String
+  image                  String
+  createdAt              DateTime      @default(now())
+}
+
+model Testimonial{
+  id                     String               @unique @id @default(uuid())
+  adminUserId            String
+  name                   String
+  pic                    String?              @db.Text
+  profession             String
+  description            String               @db.Text
+  createdAt              DateTime             @default(now())
+}
+
+
+model NotesCategory {
+  id                    String         @unique @id @default(uuid())
+  adminUserId           String
+  name                  String
+  description           String?       @db.Text
+  Notes                 Notes[]
+  createdBy             String
+  startYear             DateTime      @default(now())
+  endYear               DateTime       @default(now())
+
+  @@index([adminUserId], name: "AdminUserIdIndex")
+  @@index([name], name: "NameIndex")
+  @@index([startYear, endYear], name: "NotesCategorySortIndex")
+
+}
+
+model Notes {
+  id                     String                @unique @id @default(uuid())
+  adminUserId            String
+  title                  String
+  category               NotesCategory         @relation(fields: [categoryId] , references: [id], onDelete: Cascade, onUpdate: Cascade)
+  categoryId             String
+  noteLink               String?               @db.Text
+  description            String?               @db.Text
+  isFree                 Boolean               @default(false)
+  createdBy              String
+  createdAt              DateTime              @default(now())
+
+  @@index([adminUserId], name: "AdminUserIdIndex")
+  @@index([categoryId], name: "CategoryIdIdIndex")
+}
+
+model Blog {
+  id           String            @unique @id @default(uuid())
+  title        String
+  content      String            @db.Text
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  userId       String
+  viewCount    Int               @default(0)
+  isFeatured   Boolean           @default(false)
+  isTrending   Boolean           @default(false)
+  comments     Comment[]
+  reactions    Reaction[]
+  tags         Tag[]
+  user         User              @relation(fields: [userId], references: [id])
+  highlights   UserHighlight[]   @relation("BlogHighlights")
+
+  @@index([createdAt], name: "CreatedAtIndex")
+  @@index([updatedAt], name: "UpdatedAtIndex")
+  @@index([userId], name: "UserIdIndex")
+}
+
+model UserHighlight {
+  id        String               @unique @id @default(uuid())
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  userId    String
+  blogId    String
+  user      User                 @relation("UserHighlights", fields: [userId], references: [id])
+  blog      Blog                 @relation("BlogHighlights", fields: [blogId], references: [id])
+
+  @@index([createdAt], name: "CreatedAtIndex")
+  @@index([updatedAt], name: "UpdatedAtIndex")
+  @@index([userId], name: "UserIdIndex")
+  @@index([blogId], name: "BlogIdIndex")
+}
+
+model Comment {
+  id           String             @unique @id @default(uuid())
+  content      String             @db.Text
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  userId       String
+  blogId       String
+  parentId     String?
+  user         User               @relation(fields: [userId], references: [id])
+  blog         Blog               @relation(fields: [blogId], references: [id])
+  reactions    Reaction[]
+  parent       Comment?           @relation("NestedComments", fields: [parentId], references: [id])
+  children     Comment[]          @relation("NestedComments")
+
+  @@index([createdAt], name: "CreatedAtIndex")
+  @@index([updatedAt], name: "UpdatedAtIndex")
+  @@index([userId], name: "UserIdIndex")
+  @@index([parentId], name: "ParentIdIndex")
+  @@index([blogId], name: "BlogIdIndex")
+}
+
+model Reaction {
+  id           String             @unique @id @default(uuid())
+  type         ReactionType
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  userId       String
+  blogId       String
+  commentId    String?
+  user         User               @relation(fields: [userId], references: [id])
+  blog         Blog               @relation(fields: [blogId], references: [id])
+  comment      Comment?           @relation(fields: [commentId], references: [id])
+
+  @@index([createdAt], name: "CreatedAtIndex")
+  @@index([updatedAt], name: "UpdatedAtIndex")
+  @@index([userId], name: "UserIdIndex")
+  @@index([blogId], name: "BlogIdIndex")
+  @@index([commentId], name: "CommentIdIndex")
+}
+
+model Tag {
+  id        String               @unique @id @default(uuid())
+  name      String               @unique
+  blogs     Blog[]
+
+  @@index([name], name: "NameIndex")
+}
+
+
+// videos Model
+
+model VideosCategory {
+  id                    String          @unique @id @default(uuid())
+  adminUserId           String
+  name                  String
+  description           String?         @db.Text
+  Videos                Videos[]
+  createdBy             String
+  createdAt             DateTime        @default(now())
+
+  @@index([adminUserId], name: "AdminUserIdIndex")
+  @@index([name], name: "NameIndex")
+}
+
+model Videos {
+  id                     String                @unique @id @default(uuid())
+  adminUserId            String
+  title                  String
+  type                   Int?                  @default(1)
+  category               VideosCategory        @relation(fields: [categoryId] , references: [id], onDelete: Cascade, onUpdate: Cascade)
+  categoryId             String
+  videoLink              String                @db.Text
+  description            String?               @db.Text
+  createdBy              String
+  createdAt              DateTime              @default(now())
+
+  @@index([adminUserId], name: "AdminUserIdIndex")
+  @@index([categoryId], name: "CategoryIdIdIndex")
+}
